@@ -117,6 +117,7 @@ export default function App() {
   });
 
   const [selectedMeal, setSelectedMeal] = useState('breakfast');
+  const [searchMode, setSearchMode] = useState('manual');
 
   useEffect(() => {
     async function loadSavedData() {
@@ -176,6 +177,20 @@ export default function App() {
 
     saveData();
   }, [profile, foodLog, storageLoaded]);
+
+  useEffect(() => {
+  if (!usdaSearch.trim()) {
+    setUsdaResults([]);
+    setUsdaError('');
+    return;
+  }
+
+  const timeoutId = setTimeout(() => {
+    searchUsdaFoods();
+  }, 600);
+
+  return () => clearTimeout(timeoutId);
+}, [usdaSearch]);
 
   const macroGoals = useMemo(() => {
     return calculateMacros({
@@ -628,7 +643,7 @@ const filteredFoods = starterFoods.filter((food) =>
           <View style={styles.usdaSearchRow}>
             <TextInput
               style={styles.usdaSearchInput}
-              placeholder="Search chicken breast..."
+              placeholder="Search food or brands..."
               value={usdaSearch}
               onChangeText={setUsdaSearch}
             />
