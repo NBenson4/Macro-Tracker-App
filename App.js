@@ -304,33 +304,79 @@ const filteredFoods = starterFoods.filter((food) =>
     fetchProductByBarcode(data);
   }
 
+  async function searchOpenFoodFactsFoods(searchTerm) {
+  const response = await fetch(
+    `https://world.openfoodfacts.org/cgi/search.pl?search_terms=${encodeURIComponent(
+      searchTerm
+    )}&search_simple=1&action=process&json=1&page_size=10&fields=code,product_name,brands,serving_size,nutriments`
+  );
+
+  if (!response.ok) {
+    throw new Error('Open Food Facts search failed.');
+  }
+
+  const data = await response.json();
+
+  return (data.products || [])
+    .filter((item) => item.product_name)
+    .map((item) => {
+      const nutriments = item.nutriments || {};
+
+      return {
+        id: `off-${item.code}`,
+        source: 'Open Food Facts',
+        name: item.product_name || 'Unknown Product',
+        brand: item.brands || 'Packaged Food',
+        serving: item.serving_size || '100 g',
+        calories: Math.round(
+          nutriments['energy-kcal_serving'] ??
+            nutriments['energy-kcal_100g'] ??
+            0
+        ),
+        protein: Math.round(
+          nutriments.proteins_serving ??
+            nutriments.proteins_100g ??
+            0
+        ),
+        carbs: Math.round(
+          nutriments.carbohydrates_serving ??
+            nutriments.carbohydrates_100g ??
+            0
+        ),
+        fat: Math.round(
+          nutriments.fat_serving ??
+            nutriments.fat_100g ??
+            0
+        ),
+      };
+    });
+}
+
   async function searchUsdaFoods() {
-    console.log('USDA API KEY:', USDA_API_KEY);
-    console.log('Searching for:', usdaSearch);
+  if (!usdaSearch.trim()) {
+    setUsdaError('Please enter a food.');
+    return;
+  }
 
-    if (!usdaSearch.trim()) {
-      setUsdaError('Please enter a food.');
-      return;
-    }
+  setUsdaLoading(true);
+  setUsdaError('');
+  setUsdaResults([]);
 
-    setUsdaLoading(true);
-    setUsdaError('');
-    setUsdaResults([]);
+  try {
+    const openFoodFactsResults = await searchOpenFoodFactsFoods(usdaSearch);
 
-    try {
-      const response = await fetch(
-        `https://api.nal.usda.gov/fdc/v1/foods/search?query=${encodeURIComponent(
-          usdaSearch
-        )}&pageSize=10&api_key=${USDA_API_KEY}`
-      );
+    const response = await fetch(
+      `https://api.nal.usda.gov/fdc/v1/foods/search?query=${encodeURIComponent(
+        usdaSearch
+      )}&pageSize=10&api_key=${USDA_API_KEY}`
+    );
 
-      if (!response.ok) {
-        throw new Error('USDA search failed.');
-      }
+    let usdaFormattedResults = [];
 
+    if (response.ok && USDA_API_KEY !== 'DEVELOPMENT_KEY_REMOVED') {
       const data = await response.json();
 
-      const formattedResults = (data.foods || []).map((item) => {
+      usdaFormattedResults = (data.foods || []).map((item) => {
         const nutrients = item.foodNutrients || [];
 
         const findNutrient = (name) => {
@@ -342,7 +388,8 @@ const filteredFoods = starterFoods.filter((food) =>
         };
 
         return {
-          id: String(item.fdcId),
+          id: `usda-${item.fdcId}`,
+          source: 'USDA',
           name: item.description || 'Unnamed Food',
           brand: item.brandName || item.dataType || 'USDA FoodData Central',
           serving: '100 g',
@@ -352,14 +399,24 @@ const filteredFoods = starterFoods.filter((food) =>
           fat: findNutrient('total lipid'),
         };
       });
-
-      setUsdaResults(formattedResults);
-    } catch (error) {
-      setUsdaError('Unable to search USDA foods.');
-    } finally {
-      setUsdaLoading(false);
     }
+
+    const combinedResults = [
+      ...openFoodFactsResults,
+      ...usdaFormattedResults,
+    ];
+
+    if (combinedResults.length === 0) {
+      setUsdaError('No foods found. Try a different search term.');
+    }
+
+    setUsdaResults(combinedResults);
+  } catch (error) {
+    setUsdaError('Unable to search foods right now.');
+  } finally {
+    setUsdaLoading(false);
   }
+}
 
   if (scannerOpen) {
     return (
