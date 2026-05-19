@@ -95,7 +95,12 @@ export default function App() {
   const [scannedProduct, setScannedProduct] = useState(null);
 
   const [search, setSearch] = useState('');
-  const [foodLog, setFoodLog] = useState([]);
+  const [foodLog, setFoodLog] = useState({
+  breakfast: [],
+  lunch: [],
+  dinner: [],
+  snacks: [],
+  });
 
   const [usdaSearch, setUsdaSearch] = useState('');
   const [usdaResults, setUsdaResults] = useState([]);
@@ -125,8 +130,24 @@ export default function App() {
         }
 
         if (savedFoodLog) {
-          setFoodLog(JSON.parse(savedFoodLog));
-        }
+  const parsedFoodLog = JSON.parse(savedFoodLog);
+
+  if (Array.isArray(parsedFoodLog)) {
+    setFoodLog({
+      breakfast: parsedFoodLog,
+      lunch: [],
+      dinner: [],
+      snacks: [],
+    });
+  } else {
+    setFoodLog({
+      breakfast: parsedFoodLog.breakfast || [],
+      lunch: parsedFoodLog.lunch || [],
+      dinner: parsedFoodLog.dinner || [],
+      snacks: parsedFoodLog.snacks || [],
+    });
+  }
+}
       } catch (error) {
         console.log('Error loading saved data:', error);
       } finally {
@@ -165,40 +186,53 @@ export default function App() {
     });
   }, [profile]);
 
-  const totals = foodLog.reduce(
-    (sum, food) => ({
-      calories: sum.calories + food.calories,
-      protein: sum.protein + food.protein,
-      carbs: sum.carbs + food.carbs,
-      fat: sum.fat + food.fat,
-    }),
-    { calories: 0, protein: 0, carbs: 0, fat: 0 }
-  );
+  const allFoods = [
+  ...foodLog.breakfast,
+  ...foodLog.lunch,
+  ...foodLog.dinner,
+  ...foodLog.snacks,
+];
 
-  const filteredFoods = starterFoods.filter((food) =>
-    food.name.toLowerCase().includes(search.toLowerCase())
-  );
-
-  function updateProfile(field, value) {
-    setProfile((current) => ({
-      ...current,
-      [field]: value,
-    }));
+const totals = allFoods.reduce(
+  (sum, food) => ({
+    calories: sum.calories + food.calories,
+    protein: sum.protein + food.protein,
+    carbs: sum.carbs + food.carbs,
+    fat: sum.fat + food.fat,
+  }),
+  {
+    calories: 0,
+    protein: 0,
+    carbs: 0,
+    fat: 0,
   }
+);
 
-  function addFood(food) {
-    setFoodLog((current) => [
-      ...current,
+const filteredFoods = starterFoods.filter((food) =>
+  food.name.toLowerCase().includes(search.toLowerCase())
+);
+
+  function addFood(food, meal = 'breakfast') {
+  setFoodLog((current) => ({
+    ...current,
+    [meal]: [
+      ...current[meal],
       {
         ...food,
         logId: Date.now().toString(),
       },
-    ]);
-  }
+    ],
+  }));
+}
 
-  function removeFood(logId) {
-    setFoodLog((current) => current.filter((food) => food.logId !== logId));
-  }
+  function removeFood(logId, meal) {
+  setFoodLog((current) => ({
+    ...current,
+    [meal]: current[meal].filter(
+      (food) => food.logId !== logId
+    ),
+  }));
+}
 
   async function openScanner() {
     if (!permission?.granted) {
@@ -542,30 +576,66 @@ export default function App() {
         <View style={styles.card}>
           <Text style={styles.cardTitle}>Food Log</Text>
 
-          {foodLog.length === 0 ? (
-            <Text style={styles.emptyText}>No foods logged yet.</Text>
-          ) : (
-            foodLog.map((food) => (
-              <TouchableOpacity
-                key={food.logId}
-                style={styles.foodItem}
-                onPress={() => removeFood(food.logId)}
-              >
-                <View>
-                  <Text style={styles.foodName}>{food.name}</Text>
-                  <Text style={styles.foodMeta}>
-                    {food.calories} cal • P {food.protein}g • C {food.carbs}g • F{' '}
-                    {food.fat}g
-                  </Text>
-                </View>
+        <MealSection
+          title="Breakfast"
+          foods={foodLog.breakfast}
+          meal="breakfast"
+          onRemoveFood={removeFood}
+        />
 
-                <Text style={styles.removeText}>Remove</Text>
-              </TouchableOpacity>
-            ))
-          )}
+        <MealSection
+          title="Lunch"
+          foods={foodLog.lunch}
+          meal="lunch"
+          onRemoveFood={removeFood}
+        />
+
+        <MealSection
+          title="Dinner"
+          foods={foodLog.dinner}
+          meal="dinner"
+          onRemoveFood={removeFood}
+        />
+
+        <MealSection
+          title="Snacks"
+          foods={foodLog.snacks}
+          meal="snacks"
+          onRemoveFood={removeFood}
+        />
+
         </View>
       </ScrollView>
     </SafeAreaView>
+  );
+}
+
+function MealSection({ title, foods, meal, onRemoveFood }) {
+  return (
+    <View style={styles.mealSection}>
+      <Text style={styles.mealTitle}>{title}</Text>
+
+      {foods.length === 0 ? (
+        <Text style={styles.emptyText}>No foods logged.</Text>
+      ) : (
+        foods.map((food) => (
+          <TouchableOpacity
+            key={food.logId}
+            style={styles.foodItem}
+            onPress={() => onRemoveFood(food.logId, meal)}
+          >
+            <View>
+              <Text style={styles.foodName}>{food.name}</Text>
+              <Text style={styles.foodMeta}>
+                {food.calories} cal • P {food.protein}g • C {food.carbs}g • F {food.fat}g
+              </Text>
+            </View>
+
+            <Text style={styles.removeText}>Remove</Text>
+          </TouchableOpacity>
+        ))
+      )}
+    </View>
   );
 }
 
@@ -738,4 +808,25 @@ const styles = StyleSheet.create({
   camera: {
     flex: 1,
   },
+  mealSection: {
+    marginBottom: 16,
+  },
+
+  mealTitle: {
+    fontSize: 16,
+    fontWeight: '900',
+    color: '#172033',
+    marginBottom: 6,
+  },
+  mealSection: {
+  marginBottom: 16,
+},
+
+mealTitle: {
+  fontSize: 16,
+  fontWeight: '900',
+  color: '#172033',
+  marginBottom: 6,
+},
+
 });
