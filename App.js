@@ -116,6 +116,8 @@ export default function App() {
     goal: 'maintain',
   });
 
+  const [selectedMeal, setSelectedMeal] = useState('breakfast');
+
   useEffect(() => {
     async function loadSavedData() {
       try {
@@ -527,6 +529,19 @@ const filteredFoods = starterFoods.filter((food) =>
             </TouchableOpacity>
           </View>
 
+          <Text style={styles.sectionLabel}>Select Meal</Text>
+
+            <ButtonGroup
+              options={[
+                { label: 'Breakfast', value: 'breakfast' },
+                { label: 'Lunch', value: 'lunch' },
+                { label: 'Dinner', value: 'dinner' },
+                { label: 'Snacks', value: 'snacks' },
+              ]}
+              selected={selectedMeal}
+              onSelect={setSelectedMeal}
+            />
+
           <Text style={styles.sectionLabel}>Starter Foods</Text>
 
           <TextInput
@@ -540,7 +555,7 @@ const filteredFoods = starterFoods.filter((food) =>
             <TouchableOpacity
               key={food.id}
               style={styles.foodItem}
-              onPress={() => addFood(food)}
+              onPress={() => addFood(scannedProduct, selectedMeal)}
             >
               <View>
                 <Text style={styles.foodName}>{food.name}</Text>
@@ -570,7 +585,10 @@ const filteredFoods = starterFoods.filter((food) =>
 
           {usdaError ? <Text style={styles.usdaErrorText}>{usdaError}</Text> : null}
 
-          <FoodSearchResults results={usdaResults} onAddFood={addFood} />
+          <FoodSearchResults
+            results={usdaResults}
+            onAddFood={(food) => addFood(food, selectedMeal)}
+          />
         </View>
 
         <View style={styles.card}>
