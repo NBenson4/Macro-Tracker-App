@@ -2,6 +2,11 @@
 // Macro tracker MVP with profile-based macro calculation, food logging,
 // and barcode scanning using Expo Camera.
 
+import Input from './components/Input';
+import ButtonGroup from './components/ButtonGroup';
+import MacroGrid from './components/MacroGrid';
+import ProgressLine from './components/ProgressLine';
+
 import React, { useMemo, useState } from 'react';
 import {
   SafeAreaView,
@@ -396,77 +401,6 @@ export default function App() {
         </View>
       </ScrollView>
     </SafeAreaView>
-  );
-}
-
-function Input({ label, value, onChangeText, keyboardType }) {
-  return (
-    <View style={styles.inputWrap}>
-      <Text style={styles.label}>{label}</Text>
-      <TextInput
-        style={styles.input}
-        value={value}
-        onChangeText={onChangeText}
-        keyboardType={keyboardType}
-      />
-    </View>
-  );
-}
-
-function ButtonGroup({ options, selected, onSelect }) {
-  return (
-    <View style={styles.buttonGroup}>
-      {options.map((option) => (
-        <TouchableOpacity
-          key={option.value}
-          style={[styles.optionButton, selected === option.value && styles.optionButtonActive]}
-          onPress={() => onSelect(option.value)}
-        >
-          <Text style={[styles.optionText, selected === option.value && styles.optionTextActive]}>
-            {option.label}
-          </Text>
-        </TouchableOpacity>
-      ))}
-    </View>
-  );
-}
-
-function MacroGrid({ data }) {
-  return (
-    <View style={styles.macroGrid}>
-      <MacroBox label="Calories" value={data.calories} unit="cal" />
-      <MacroBox label="Protein" value={data.protein} unit="g" />
-      <MacroBox label="Carbs" value={data.carbs} unit="g" />
-      <MacroBox label="Fat" value={data.fat} unit="g" />
-    </View>
-  );
-}
-
-function MacroBox({ label, value, unit }) {
-  return (
-    <View style={styles.macroBox}>
-      <Text style={styles.macroValue}>{value}</Text>
-      <Text style={styles.macroLabel}>{label}</Text>
-      <Text style={styles.macroUnit}>{unit}</Text>
-    </View>
-  );
-}
-
-function ProgressLine({ label, current, target, unit }) {
-  const percent = target > 0 ? Math.min((current / target) * 100, 100) : 0;
-
-  return (
-    <View style={styles.progressWrap}>
-      <View style={styles.progressHeader}>
-        <Text style={styles.progressLabel}>{label}</Text>
-        <Text style={styles.progressText}>
-          {current} / {target} {unit}
-        </Text>
-      </View>
-      <View style={styles.progressTrack}>
-        <View style={[styles.progressFill, { width: `${percent}%` }]} />
-      </View>
-    </View>
   );
 }
 
